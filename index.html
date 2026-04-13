@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
+    <title>Spiky Target VR</title>
+
+    <link href="index.css" rel="stylesheet">
+
+    <script src="./vendor/aframe.min.js"></script>
+    <script src="./vendor/aframe-event-set-component.min.js"></script>
+    <script src="./vendor/aframe-sprite-particles-component.js"></script>
+    <script src="./vendor/aframe-extras.min.js"></script>
+    <script src="./vendor/aframe-rain.min.js"></script>
+    <script src="./vendor/aframe-curve-component.min.js"></script>
+    <script src="./vendor/aframe-alongpath-component.min.js"></script>
+    <script src="./vendor/howler.min.js"></script>
+
+    <script src="./components/play-tracks.js"></script>
+    <script src="./components/makeviruscb.js"></script>
+    <script src="./components/gamestate.js"></script>
+    <script src="./components/backonclick.js"></script>
+    <script src="./components/win-lose.js"></script>
+    <script src="./components/utils.js"></script>
+
+    <script src="music.js"></script>
+
+    <script>
+      var bad_hits = -1;
+      var you_did_it;
+      var you_died;
+      var husten1;
+      var husten2;
+      var husten3;
+      var jazzt1;
+      var jazzt2;
+      var jazzt3;
+      var sound_bad_hit;
+      var sound_fall;
+      var wscream;
+      var soundgewitter;
+    </script>
+  </head>
+
+  <body>
+    <a-scene loading-screen="dotsColor: red; backgroundColor: black"
+      play-tracks makevirus win-lose gamestate>
+
+      <a-assets>
+        <a-asset-item id="wforest" src="sky_pano_winterforest/scene.gltf"></a-asset-item>
+        <a-asset-item id="corona" src="coronavirus/scene.gltf"></a-asset-item>
+
+        <audio id="bgmusic_audio" src="./audio/voegelzwitschern.mp3" preload="auto"></audio>
+
+        <a-mixin id="light"
+          geometry="primitive: sphere; radius: 0.01"
+          material="color: #111; shader: flat"
+          light="color: #DDDDFF; distance: 120; intensity: 1; type: point">
+        </a-mixin>
+
+        <a-mixin id="font"
+          text="font: fonts/Viga-Regular.json; shader: msdf; letterSpacing: 1.5">
+        </a-mixin>
+      </a-assets>
+
+      <!-- =========================
+           🔆 LIGHTING FIX (IMPORTANT)
+      ========================== -->
+
+      <!-- Main directional light (KEY FIX for dark virus) -->
+      <a-entity light="type: directional; intensity: 1.3" position="2 5 3"></a-entity>
+
+      <!-- Strong ambient light -->
+      <a-light type="ambient" color="#ffffff" intensity="0.75"></a-light>
+
+      <!-- OPTIONAL: brighter sky (uncomment if you want even brighter scene) -->
+      <!-- <a-sky color="#bfe9ff"></a-sky> -->
+
+      <!-- =========================
+           TITLE SCREEN UI
+      ========================== -->
+
+      <a-entity id="titleBox" position="0 3.2 -6">
+        <a-plane width="4.5" height="1.2" color="#ff6b6b" opacity="0.85"></a-plane>
+
+        <a-entity
+          position="0 0 0.01"
+          text="value: SPIKY TARGET VR; align: center; color: white; width: 6">
+        </a-entity>
+      </a-entity>
+
+      <a-entity id="credits" position="0 2.2 -6"
+        text="value: Rupam Kumari \nCMPT 461; align: center; color: #ffe08a; width: 4">
+      </a-entity>
+
+      <!-- LEVEL BUTTONS -->
+      <a-plane id="level1Btn"
+        height="0.9" width="2.2"
+        position="-1.6 0.8 -6"
+        color="green"
+        class="clickable"
+        text="value: LEVEL 1; align: center; color: #000000">
+      </a-plane>
+
+      <a-plane id="level2Btn"
+        height="0.9" width="2.2"
+        position="1.6 0.8 -6"
+        color="#FFA24C"
+        class="clickable"
+        text="value: LEVEL 2; align: center; color: #000000">
+      </a-plane>
+
+      <!-- MUSIC BUTTON -->
+      <a-entity
+        id="musicBtn"
+        position="0 -0.5 -6"
+        geometry="primitive: plane; width: 2; height: 0.7"
+        material="color: #4DA6FF"
+        class="clickable"
+        text="value: MUSIC ON/OFF; align: center; color: #000000"
+        onclick="toggleMusic()">
+      </a-entity>
+
+      <!-- GAME WORLD -->
+
+      <a-entity id="bgmusic"
+        sound="src: #bgmusic_audio; loop: true; positional: false; autoplay: true; volume: 0.5">
+      </a-entity>
+
+      <a-gltf-model id="mwforest"
+        src="#wforest"
+        rotation="0 90 0"
+        scale="1 1 1">
+      </a-gltf-model>
+
+      <!-- (kept your original light if needed, but now brighter scene overall) -->
+      <a-light type="ambient" color="#445451"></a-light>
+
+      <!-- CAMERA -->
+      <a-entity id="itsme">
+        <a-entity camera look-controls position="0 1.6 0">
+
+          <a-entity id="counthits"
+            position="-0.6 0.3 -0.8"
+            mixin="font"
+            text="color: #4ef580; width: 2; value: 10; align: center">
+          </a-entity>
+
+          <a-entity id="playtime"
+            position="0.6 0.3 -0.8"
+            mixin="font"
+            text="color: #b8f1fc; width: 2; value: 0; align: center">
+          </a-entity>
+
+          <a-entity cursor="fuse: true; fuseTimeout: 200"
+            position="0 0 -1"
+            geometry="primitive: ring; radiusInner: 0.03; radiusOuter: 0.05"
+            material="color: red; shader: flat">
+          </a-entity>
+
+        </a-entity>
+      </a-entity>
+
+    </a-scene>
+
+    <script>
+      function hideMenu() {
+        document.querySelector('#titleBox').setAttribute('visible', false);
+        document.querySelector('#credits').setAttribute('visible', false);
+        document.querySelector('#level1Btn').setAttribute('visible', false);
+        document.querySelector('#level2Btn').setAttribute('visible', false);
+        document.querySelector('#musicBtn').setAttribute('visible', false);
+      }
+
+      document.querySelector('#level1Btn').addEventListener('click', function () {
+        startLevel(1);
+        hideMenu();
+      });
+
+      document.querySelector('#level2Btn').addEventListener('click', function () {
+        startLevel(2);
+        hideMenu();
+      });
+    </script>
+
+  </body>
+</html>
